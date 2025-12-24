@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<logitrack>
+    <configuracion>
+        <centros>
+            <centro id="C001">
+                <nombre>Centro Norte</nombre>
+                <ciudad>Guatemala City</ciudad>
+                <capacidad>300</capacidad>
+            </centro>
+            <centro id="C002">
+                <nombre>Centro Occidente</nombre>
+                <ciudad>Quetzaltenango</ciudad>
+                <capacidad>200</capacidad>
+            </centro>
+        </centros>
+        <rutas>
+            <ruta id="R001" origen="C001" destino="C002" distancia="205"/>
+            <ruta id="R002" origen="C002" destino="C001" distancia="210"/>
+        </rutas>
+        <mensajeros>
+            <mensajero id="M001" nombre="Carlos Méndez" capacidad="10" centro="C001"/>
+            <mensajero id="M002" nombre="Ana López" capacidad="10" centro="C002"/>
+        </mensajeros>
+        <paquetes>
+            <paquete id="P001" cliente="Empresa X" peso="15" destino="C002" estado="PENDIENTE" centroActual="C001"/>
+        </paquetes>
+        <solicitudes>
+            <solicitud id="S001" tipo="EnvioNormal" paquete="P001" prioridad="7"/>
+        </solicitudes>
+    </configuracion>
+</logitrack>
