@@ -1,6 +1,6 @@
-package com.usac.logitrack.backend.controller;
+package controller;
 
-import com.usac.logitrack.backend.service.DespachoService;
+import service.DespachoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;

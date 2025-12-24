@@ -1,6 +1,6 @@
-package com.usac.logitrack.backend.repository;
+package repository;
 
-import com.usac.logitrack.backend.model.*;
+import model.*;
 import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;

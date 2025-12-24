@@ -1,10 +1,10 @@
-package com.usac.logitrack.backend.service;
+package service;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
-import com.usac.logitrack.backend.model.*;
-import com.usac.logitrack.backend.repository.DataStore;
+import model.*;
+import repository.DataStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

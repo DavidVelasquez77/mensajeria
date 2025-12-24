@@ -1,8 +1,8 @@
-package com.usac.logitrack.backend.service;
+package service;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.usac.logitrack.backend.model.ConfiguracionLogitrack;
-import com.usac.logitrack.backend.repository.DataStore;
+import model.ConfiguracionLogitrack;
+import repository.DataStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;

@@ -1,8 +1,8 @@
-package com.usac.logitrack.backend.controller;
+package controller;
 
-import com.usac.logitrack.backend.model.Mensajero;
-import com.usac.logitrack.backend.model.Paquete;
-import com.usac.logitrack.backend.repository.DataStore;
+import model.Mensajero;
+import model.Paquete;
+import repository.DataStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

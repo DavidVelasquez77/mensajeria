@@ -1,7 +1,7 @@
-package com.usac.logitrack.backend.controller;
-
-import com.usac.logitrack.backend.model.Paquete;
-import com.usac.logitrack.backend.repository.DataStore;
+package controller;
+import model.Centro;
+import model.Paquete;
+import repository.DataStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -58,12 +58,28 @@ public class PaqueteController {
     public ResponseEntity<String> crearPaquete(@RequestBody Paquete nuevo) {
         System.out.println("Intentando registrar paquete: " + nuevo.getId());
 
-
+        // Validacion 1: Peso positivo
         if (nuevo.getPeso() <= 0) {
             return ResponseEntity.badRequest().body("Error: El peso debe ser mayor a 0.");
         }
 
-        // Validacion de duplicados
+        // Validacion 2: Centro Destino debe existir (NUEVA)
+        boolean destinoExiste = false;
+        // Asumimos que datosMemoria tiene getCentros(), si no, verifica tu DataStore
+        if (datosMemoria.getCentros() != null) {
+            for (Centro c : datosMemoria.getCentros()) {
+                if (c.getId().equals(nuevo.getDestino())) {
+                    destinoExiste = true;
+                    break;
+                }
+            }
+        }
+
+        if (!destinoExiste) {
+            return ResponseEntity.badRequest().body("Error: El centro destino no existe.");
+        }
+
+        // Validacion 3: ID duplicado
         List<Paquete> lista = datosMemoria.getPaquetes();
         for (int k = 0; k < lista.size(); k++) {
             if (lista.get(k).getId().equals(nuevo.getId())) {
@@ -129,7 +145,7 @@ public class PaqueteController {
             return ResponseEntity.status(404).body("Paquete no encontrado.");
         }
 
-
+        // Validacion: No borrar si esta activo
         String estado = aBorrar.getEstado();
         if (estado.equals("EN_TRANSITO") || estado.equals("ENTREGADO")) {
             System.out.println("Error: Paquete activo, no se puede borrar.");

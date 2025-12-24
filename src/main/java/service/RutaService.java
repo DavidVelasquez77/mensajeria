@@ -1,7 +1,7 @@
-package com.usac.logitrack.backend.service;
+package service;
 
-import com.usac.logitrack.backend.model.Ruta;
-import com.usac.logitrack.backend.repository.DataStore;
+import model.Ruta;
+import repository.DataStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package com.usac.logitrack.backend.model;
+package model;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
