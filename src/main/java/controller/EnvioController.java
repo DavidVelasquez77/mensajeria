@@ -19,16 +19,13 @@ public class EnvioController {
     DataStore datos;
 
     //  1. ASIGNACIÓN DIRECTA
-    // Endpoint: PUT /api/envios/asignar
     @PutMapping("/asignar")
     public ResponseEntity<String> asignarManual(@RequestBody Map<String, String> body) {
-
         String idPaquete = body.get("paqueteId");
         String idMensajero = body.get("mensajeroId");
 
-        System.out.println("Intento de asignacion manual: Paquete " + idPaquete + " -> Mensajero " + idMensajero);
+        System.out.println("Asignacion manual: " + idPaquete + " -> " + idMensajero);
 
-        // busca el paquete
         Paquete elPaquete = null;
         for (Paquete p : datos.getPaquetes()) {
             if (p.getId().equals(idPaquete)) {
@@ -36,12 +33,8 @@ public class EnvioController {
                 break;
             }
         }
+        if (elPaquete == null) return ResponseEntity.badRequest().body("Error: Paquete no existe.");
 
-        if (elPaquete == null) {
-            return ResponseEntity.badRequest().body("Error: El paquete no existe.");
-        }
-
-        // buca el mensajero
         Mensajero elMensajero = null;
         for (Mensajero m : datos.getMensajeros()) {
             if (m.getId().equals(idMensajero)) {
@@ -49,45 +42,34 @@ public class EnvioController {
                 break;
             }
         }
+        if (elMensajero == null) return ResponseEntity.badRequest().body("Error: Mensajero no existe.");
 
-        if (elMensajero == null) {
-            return ResponseEntity.badRequest().body("Error: El mensajero no existe.");
+        // Validaciones
+        if (!elPaquete.getCentroActual().equals(elMensajero.getCentro())) {
+            return ResponseEntity.badRequest().body("Error: Deben estar en el mismo centro.");
         }
-
-        // Deben estar en el mismo centro
-        String centroPaquete = elPaquete.getCentroActual();
-        String centroMensajero = elMensajero.getCentro();
-
-        if (!centroPaquete.equals(centroMensajero)) {
-            System.out.println("Fallo ubicacion: Paquete en " + centroPaquete + " vs Mensajero en " + centroMensajero);
-            return ResponseEntity.badRequest().body("Error: El paquete y el mensajero deben estar en el mismo centro.");
-        }
-
         if (!elPaquete.getEstado().equals("PENDIENTE")) {
-            return ResponseEntity.badRequest().body("Error: El paquete no esta PENDIENTE (ya fue enviado o entregado).");
+            return ResponseEntity.badRequest().body("Error: El paquete no esta PENDIENTE.");
         }
         if (!elMensajero.getEstado().equals("DISPONIBLE")) {
             return ResponseEntity.badRequest().body("Error: El mensajero no esta DISPONIBLE.");
         }
 
+        // Ejecutar
         elPaquete.setEstado("EN_TRANSITO");
         elMensajero.setEstado("EN_TRANSITO");
 
-        System.out.println("Asignacion manual exitosa.");
-        return ResponseEntity.ok("Asignacion completada: Paquete y Mensajero ahora estan EN_TRANSITO.");
+        return ResponseEntity.ok("Asignacion completada.");
     }
 
-    // GESTIÓN DEL ESTADO DEL ENVÍO
-    // Endpoint: PUT /api/envios/{id}/estado
-    // Recibe un string simple en el body, ejemplo: "ENTREGADO"
+    // 2. GESTIÓN DEL ESTADO DEL ENVÍO (CORREGIDO)
     @PutMapping("/{id}/estado")
     public ResponseEntity<String> actualizarEstado(@PathVariable String id, @RequestBody String nuevoEstado) {
 
-        System.out.println("Solicitud de cambio de estado para paquete ID: " + id);
+        System.out.println("Cambio de estado para paquete: " + id);
 
         String estadoLimpio = nuevoEstado.replace("\"", "").trim();
 
-        // Buscar Paquete
         Paquete paqueteEncontrado = null;
         for (Paquete p : datos.getPaquetes()) {
             if (p.getId().equals(id)) {
@@ -96,56 +78,59 @@ public class EnvioController {
             }
         }
 
-        if (paqueteEncontrado == null) {
-            return ResponseEntity.status(404).body("Error: Paquete no encontrado.");
-        }
+        if (paqueteEncontrado == null) return ResponseEntity.status(404).body("Error: Paquete no encontrado.");
 
         String estadoActual = paqueteEncontrado.getEstado();
 
-
-        // No se puede modificar si ya se entregó
+        // Validaciones de Transición
         if (estadoActual.equals("ENTREGADO")) {
-            return ResponseEntity.badRequest().body("Error: El paquete ya fue ENTREGADO, no se puede cambiar mas.");
+            return ResponseEntity.badRequest().body("Error: Ya fue entregado.");
         }
-
-        // No se puede saltar pasos (PENDIENTE -> ENTREGADO prohibido)
         if (estadoActual.equals("PENDIENTE") && estadoLimpio.equals("ENTREGADO")) {
-            return ResponseEntity.badRequest().body("Error: Transicion invalida. Debe pasar por EN_TRANSITO primero.");
+            return ResponseEntity.badRequest().body("Error: Debe pasar por EN_TRANSITO.");
         }
-
-        // No se puede retroceder (EN_TRANSITO -> PENDIENTE prohibido)
         if (estadoActual.equals("EN_TRANSITO") && estadoLimpio.equals("PENDIENTE")) {
-            return ResponseEntity.badRequest().body("Error: No se puede revertir un envio en transito.");
+            return ResponseEntity.badRequest().body("Error: No se puede revertir.");
         }
 
-
+        // --- APLICAR CAMBIO ---
         paqueteEncontrado.setEstado(estadoLimpio);
-
-        // Registro del timestamp en memoria
         String timeStamp = LocalDateTime.now().toString();
-        System.out.println("Cambio registrado a las: " + timeStamp + " | Nuevo estado: " + estadoLimpio);
+        System.out.println("Nuevo estado: " + estadoLimpio + " | Hora: " + timeStamp);
 
-        // liberar al mensajero si se entrega
+        // --- REGLA: FINALIZAR VIAJE Y LIBERAR MENSAJERO ---
         if (estadoLimpio.equals("ENTREGADO")) {
-            System.out.println("Paquete entregado. Buscando mensajero para liberar...");
+            System.out.println("Paquete entregado. Finalizando logistica...");
 
+            // Guardamos donde estaba el paquete antes de actualizarlo
+            String centroOrigenViaje = paqueteEncontrado.getCentroActual();
+            String centroDestinoViaje = paqueteEncontrado.getDestino();
+
+            // 1. Mover el paquete al destino final
+            paqueteEncontrado.setCentroActual(centroDestinoViaje);
+
+            // 2. Buscar al mensajero que venia del origen
             boolean mensajeroLiberado = false;
 
             for (Mensajero m : datos.getMensajeros()) {
-                // Verificamos si esta ocupado y si coincide con el destino del paquete
-                if (m.getEstado().equals("EN_TRANSITO") && m.getCentro().equals(paqueteEncontrado.getDestino())) {
-                    m.setEstado("DISPONIBLE");
-                    System.out.println("Mensajero " + m.getNombre() + " ahora esta DISPONIBLE.");
+                // Buscamos un mensajero EN_TRANSITO que siga registrado en el origen del viaje
+                if (m.getEstado().equals("EN_TRANSITO") && m.getCentro().equals(centroOrigenViaje)) {
+
+                    // SIMULACION DE LLEGADA:
+                    m.setCentro(centroDestinoViaje); // Lo movemos al destino
+                    m.setEstado("DISPONIBLE");       // Lo liberamos
+
+                    System.out.println("Mensajero " + m.getNombre() + " viajo de " + centroOrigenViaje + " a " + centroDestinoViaje + " y esta LIBRE.");
                     mensajeroLiberado = true;
-                    break; // Liberamos solo a uno
+                    break;
                 }
             }
 
             if (!mensajeroLiberado) {
-                System.out.println("Advertencia: No se encontro mensajero exacto para liberar en el destino.");
+                System.out.println("Nota: No se encontro mensajero en el origen para mover. (Tal vez ya estaba en destino)");
             }
         }
 
-        return ResponseEntity.ok("Estado actualizado correctamente a " + estadoLimpio);
+        return ResponseEntity.ok("Estado actualizado a " + estadoLimpio);
     }
 }

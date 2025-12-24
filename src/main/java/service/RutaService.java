@@ -15,6 +15,60 @@ public class RutaService {
     @Autowired
     private DataStore dataStore;
 
+    // --- MÉTODOS CRUD (LOS QUE TE FALTABAN) ---
+
+    // 1. Obtener todas
+    public List<Ruta> obtenerTodas() {
+        return dataStore.getRutas();
+    }
+
+    // 2. Buscar por ID
+    public Ruta buscarPorId(String id) {
+        for (Ruta r : dataStore.getRutas()) {
+            if (r.getId().equals(id)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    // 3. Crear Ruta
+    public void crearRuta(Ruta nueva) {
+        // Validar duplicados de ID o de conexión (Origen-Destino)
+        for (Ruta r : dataStore.getRutas()) {
+            if (r.getId().equals(nueva.getId())) {
+                throw new IllegalArgumentException("Ya existe una ruta con el ID " + nueva.getId());
+            }
+            if (r.getOrigen().equals(nueva.getOrigen()) && r.getDestino().equals(nueva.getDestino())) {
+                throw new IllegalArgumentException("Ya existe una ruta entre " + nueva.getOrigen() + " y " + nueva.getDestino());
+            }
+        }
+        dataStore.getRutas().add(nueva);
+    }
+
+    // 4. Actualizar Ruta
+    public boolean actualizarRuta(String id, Ruta nuevosDatos) {
+        Ruta ruta = buscarPorId(id);
+        if (ruta != null) {
+            ruta.setDistancia(nuevosDatos.getDistancia());
+            // Actualizar otros campos si es necesario
+            return true;
+        }
+        return false;
+    }
+
+    // 5. Eliminar Ruta
+    public boolean eliminarRuta(String id) {
+        Ruta ruta = buscarPorId(id);
+        if (ruta != null) {
+            dataStore.getRutas().remove(ruta);
+            return true;
+        }
+        return false;
+    }
+
+    // --- LÓGICA DE GRAFOS (DIJKSTRA) ---
+    // (Esta parte ya la tenías, la dejo aquí para que no se pierda)
 
     public List<String> buscarRuta(String inicio, String fin) {
         System.out.println("Calculando ruta de " + inicio + " a " + fin);
@@ -31,14 +85,13 @@ public class RutaService {
             return new ArrayList<>();
         }
 
-
-        // usamos mapas porque es mas facil guardar los costos
+        // usamos mapas para los costos
         Map<String, Integer> costos = new HashMap<>();
         Map<String, String> predecesores = new HashMap<>();
         List<String> pendientes = new ArrayList<>();
         List<String> visitados = new ArrayList<>();
 
-        // inicializamos los costos en un valor muy alto y recorremos todas las rutas para saber que nodos existen
+        // inicializamos costos altos
         for (Ruta r : todasLasRutas) {
             costos.put(r.getOrigen(), 1000000);
             costos.put(r.getDestino(), 1000000);
@@ -47,56 +100,41 @@ public class RutaService {
         costos.put(inicio, 0);
         pendientes.add(inicio);
 
-        // Bucle Principal (
+        // Bucle Principal
         while (!pendientes.isEmpty()) {
 
-            //  Busca el nodo con menor costo en la lista de pendientes
+            // Buscar nodo con menor costo
             String actual = null;
             int menorCosto = 1000000;
 
             for (String nodo : pendientes) {
-                int costoNodo = costos.get(nodo);
+                int costoNodo = costos.getOrDefault(nodo, 1000000);
                 if (costoNodo < menorCosto) {
                     menorCosto = costoNodo;
                     actual = nodo;
                 }
             }
 
-            // Si no encontramos nada valido, salimos
-            if (actual == null) {
-                break;
-            }
+            if (actual == null) break;
 
-            // Movemos de pendientes a visitados
             pendientes.remove(actual);
             visitados.add(actual);
 
-            // Si llegamos al destino, terminamos antes para ahorrar tiempo
-            if (actual.equals(fin)) {
-                break;
-            }
+            if (actual.equals(fin)) break;
 
-            // buscamos vecinos y recorremos la lista completa de rutas para buscar coincidencias
+            // Buscar vecinos
             for (Ruta r : todasLasRutas) {
-
-                // Si la ruta sale del nodo actual
                 if (r.getOrigen().equals(actual)) {
                     String vecino = r.getDestino();
 
-                    // Si ya lo visitamos, no hacemos nada
-                    if (visitados.contains(vecino)) {
-                        continue;
-                    }
+                    if (visitados.contains(vecino)) continue;
 
                     int nuevoCosto = costos.get(actual) + r.getDistancia();
-                    int costoActualVecino = costos.get(vecino);
+                    int costoActualVecino = costos.getOrDefault(vecino, 1000000);
 
-                    // Si encontramos un camino mas corto
                     if (nuevoCosto < costoActualVecino) {
                         costos.put(vecino, nuevoCosto);
                         predecesores.put(vecino, actual);
-
-                        // Agregamos a pendientes si no estaba
                         if (!pendientes.contains(vecino)) {
                             pendientes.add(vecino);
                         }
@@ -105,19 +143,16 @@ public class RutaService {
             }
         }
 
-        // armado del resultado final
+        // Construir camino final
         List<String> caminoFinal = new ArrayList<>();
-
-        // Verificamos si logramos llegar al destino
         if (!predecesores.containsKey(fin)) {
             System.out.println("No se encontro camino.");
-            return caminoFinal; // Lista vacia
+            return caminoFinal;
         }
 
-        // Vamos hacia atras desde el fin hasta el inicio
         String paso = fin;
         while (paso != null) {
-            caminoFinal.add(0, paso); // Insertamos al principio
+            caminoFinal.add(0, paso);
             paso = predecesores.get(paso);
         }
 

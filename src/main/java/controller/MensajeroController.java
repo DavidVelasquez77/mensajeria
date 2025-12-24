@@ -92,7 +92,6 @@ public class MensajeroController {
             return ResponseEntity.notFound().build();
         }
 
-
         String estadoLimpio = nuevoEstado.replace("\"", "").trim();
         trabajador.setEstado(estadoLimpio);
 
@@ -116,12 +115,11 @@ public class MensajeroController {
             return ResponseEntity.status(404).body("Mensajero no encontrado.");
         }
 
-        /
+        // Validacion: Si esta ocupado no se mueve
         if (m.getEstado().equals("EN_TRANSITO")) {
             System.out.println("Fallo: El mensajero esta ocupado.");
             return ResponseEntity.badRequest().body("No se puede reasignar: El mensajero esta EN_TRANSITO.");
         }
-
 
         String idCentroLimpio = nuevoCentroId.replace("\"", "").trim();
         m.setCentro(idCentroLimpio);

@@ -6,7 +6,6 @@ import com.usac.logitrack.backend.model.Solicitud;
 import com.usac.logitrack.backend.repository.DataStore;
 import com.usac.logitrack.backend.service.RutaService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,7 +47,6 @@ public class SolicitudController {
     public ResponseEntity<String> crearSolicitud(@RequestBody Solicitud nueva) {
         System.out.println("Nueva solicitud para paquete: " + nueva.getPaquete());
 
-
         boolean paqueteExiste = false;
         for (Paquete p : dataStore.getPaquetes()) {
             if (p.getId().equals(nueva.getPaquete())) {
@@ -63,7 +61,6 @@ public class SolicitudController {
         if (!paqueteExiste) {
             return ResponseEntity.badRequest().body("Error: El paquete no existe.");
         }
-
 
         dataStore.getSolicitudes().add(nueva);
         return ResponseEntity.ok("Solicitud agregada a la cola.");
@@ -103,7 +100,7 @@ public class SolicitudController {
         return procesarLogica(n);
     }
 
-    //  LOGICA DE PROCESAMIENTO "MANUAL
+    //  LOGICA DE PROCESAMIENTO "MANUAL"
     private ResponseEntity<String> procesarLogica(int cantidadAProcesar) {
         List<Solicitud> cola = dataStore.getSolicitudes();
 
@@ -120,7 +117,11 @@ public class SolicitudController {
 
         // iterar solo las veces que pidieron n
         for (int i = 0; i < cola.size(); i++) {
-            if (procesados >= cantidadAProcesar) break; }
+
+            // Validacion de cantidad procesada
+            if (procesados >= cantidadAProcesar) {
+                break;
+            }
 
             Solicitud sol = cola.get(i);
 
@@ -154,7 +155,6 @@ public class SolicitudController {
             Mensajero elMensajero = null;
             for (Mensajero m : dataStore.getMensajeros()) {
                 if (m.getCentro().equals(origen) && m.getEstado().equals("DISPONIBLE")) {
-
                     elMensajero = m;
                     break;
                 }
@@ -166,10 +166,9 @@ public class SolicitudController {
                 continue;
             }
 
-
+            // Realizar cambios
             elPaquete.setEstado("EN_TRANSITO");
             elMensajero.setEstado("EN_TRANSITO");
-            // sol.setEstado("ATENDIDA");
 
             completadas.add(sol);
             procesados++;
