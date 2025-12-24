@@ -117,7 +117,7 @@ public class EnvioController {
                 if (m.getEstado().equals("EN_TRANSITO") && m.getCentro().equals(centroOrigenViaje)) {
 
                     // SIMULACION DE LLEGADA:
-                    m.setCentro(centroDestinoViaje); // Lo movemos al destino
+                    //m.setCentro(centroDestinoViaje); // Lo movemos al destino
                     m.setEstado("DISPONIBLE");       // Lo liberamos
 
                     System.out.println("Mensajero " + m.getNombre() + " viajo de " + centroOrigenViaje + " a " + centroDestinoViaje + " y esta LIBRE.");
