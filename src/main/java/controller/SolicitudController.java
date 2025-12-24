@@ -9,9 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/solicitudes")
@@ -24,44 +22,48 @@ public class SolicitudController {
     @Autowired
     RutaService servicioRutas;
 
+    // Clase auxiliar para controlar la carga del mensajero en memoria durante el proceso
+    private static class EstadoMensajeroTemporal {
+        Mensajero mensajeroReal;
+        double capacidadRestante;
+        String destinoActual; // Para asegurar que agrupe paquetes al mismo destino
+
+        public EstadoMensajeroTemporal(Mensajero m) {
+            this.mensajeroReal = m;
+            this.capacidadRestante = m.getCapacidad();
+            this.destinoActual = null;
+        }
+    }
+
     // 1. LISTAR LA COLA (GET)
     @GetMapping
     public List<Solicitud> verCola() {
-        System.out.println("Solicitud: Ver cola de espera");
-
         List<Solicitud> cola = dataStore.getSolicitudes();
+        if (cola == null) return new ArrayList<>();
 
         // Ordenamos Mayor prioridad primero
-        cola.sort(new Comparator<Solicitud>() {
-            @Override
-            public int compare(Solicitud s1, Solicitud s2) {
-                return Integer.compare(s2.getPrioridad(), s1.getPrioridad());
-            }
-        });
-
+        cola.sort((s1, s2) -> Integer.compare(s2.getPrioridad(), s1.getPrioridad()));
         return cola;
     }
 
     // 2. CREAR SOLICITUD
     @PostMapping
     public ResponseEntity<String> crearSolicitud(@RequestBody Solicitud nueva) {
-        System.out.println("Nueva solicitud para paquete: " + nueva.getPaquete());
-
         boolean paqueteExiste = false;
-        for (Paquete p : dataStore.getPaquetes()) {
-            if (p.getId().equals(nueva.getPaquete())) {
-                paqueteExiste = true;
-
-                if (!p.getEstado().equals("PENDIENTE")) {
-                    return ResponseEntity.badRequest().body("Error: El paquete ya no esta pendiente.");
+        if (dataStore.getPaquetes() != null) {
+            for (Paquete p : dataStore.getPaquetes()) {
+                if (p.getId().equals(nueva.getPaquete())) {
+                    paqueteExiste = true;
+                    if (!p.getEstado().equals("PENDIENTE")) {
+                        return ResponseEntity.badRequest().body("Error: El paquete ya no esta pendiente.");
+                    }
+                    break;
                 }
             }
         }
-
         if (!paqueteExiste) {
             return ResponseEntity.badRequest().body("Error: El paquete no existe.");
         }
-
         dataStore.getSolicitudes().add(nueva);
         return ResponseEntity.ok("Solicitud agregada a la cola.");
     }
@@ -69,8 +71,6 @@ public class SolicitudController {
     // 3. ELIMINAR SOLICITUD
     @DeleteMapping("/{id}")
     public ResponseEntity<String> borrarSolicitud(@PathVariable String id) {
-        System.out.println("Borrando solicitud: " + id);
-
         Solicitud aBorrar = null;
         for (Solicitud s : dataStore.getSolicitudes()) {
             if (s.getId().equals(id)) {
@@ -78,7 +78,6 @@ public class SolicitudController {
                 break;
             }
         }
-
         if (aBorrar != null) {
             dataStore.getSolicitudes().remove(aBorrar);
             return ResponseEntity.ok("Solicitud eliminada.");
@@ -89,94 +88,121 @@ public class SolicitudController {
     // 4. PROCESAR LA DE MAYOR PRIORIDAD
     @PostMapping("/procesar")
     public ResponseEntity<String> procesarTop1() {
-        System.out.println("Procesando la solicitud mas urgente...");
-        return procesarLogica(1); // Llamamos a una funcion auxiliar que procesa N cantidad
+        return procesarLogica(1);
     }
 
-    // 5. PROCESAR LAS N MAS PRIORITARIAS (POST)
+    // 5. PROCESAR LAS N MAS PRIORITARIAS
     @PostMapping("/procesar/{n}")
     public ResponseEntity<String> procesarTopN(@PathVariable int n) {
-        System.out.println("Procesando las top " + n + " solicitudes...");
         return procesarLogica(n);
     }
 
-    //  LOGICA DE PROCESAMIENTO "MANUAL"
+    // --- LOGICA DE PROCESAMIENTO MEJORADA (CARGA MÚLTIPLE) ---
     private ResponseEntity<String> procesarLogica(int cantidadAProcesar) {
         List<Solicitud> cola = dataStore.getSolicitudes();
-
-        if (cola.isEmpty()) {
-            return ResponseEntity.ok("La cola esta vacia, nada que hacer.");
+        if (cola == null || cola.isEmpty()) {
+            return ResponseEntity.ok("La cola esta vacia.");
         }
 
-        // 1. Ordenar por prioridad Mayor a menor
+        // 1. Ordenar por prioridad (Lo mas urgente primero)
         cola.sort((s1, s2) -> Integer.compare(s2.getPrioridad(), s1.getPrioridad()));
 
         int procesados = 0;
         int errores = 0;
         List<Solicitud> completadas = new ArrayList<>();
 
-        // iterar solo las veces que pidieron n
-        for (int i = 0; i < cola.size(); i++) {
+        // MAPA TEMPORAL: ID Mensajero -> Estado (cuanto espacio le queda en este viaje)
+        Map<String, EstadoMensajeroTemporal> usoMensajeros = new HashMap<>();
 
-            // Validacion de cantidad procesada
-            if (procesados >= cantidadAProcesar) {
-                break;
-            }
+        // Iteramos las solicitudes
+        for (int i = 0; i < cola.size(); i++) {
+            if (procesados >= cantidadAProcesar) break;
 
             Solicitud sol = cola.get(i);
 
-            // Buscar paquete asociado
+            // A. Buscar paquete
             Paquete elPaquete = null;
-            for (Paquete p : dataStore.getPaquetes()) {
-                if (p.getId().equals(sol.getPaquete())) {
-                    elPaquete = p;
-                    break;
+            if (dataStore.getPaquetes() != null) {
+                for (Paquete p : dataStore.getPaquetes()) {
+                    if (p.getId().equals(sol.getPaquete())) {
+                        elPaquete = p;
+                        break;
+                    }
                 }
             }
 
             if (elPaquete == null || !elPaquete.getEstado().equals("PENDIENTE")) {
-                System.out.println("Salto solicitud " + sol.getId() + ": Paquete no valido.");
-                errores++;
-                continue; // Saltamos a la siguiente
+                errores++; continue;
             }
 
-            // Buscar Ruta
             String origen = elPaquete.getCentroActual();
             String destino = elPaquete.getDestino();
-            List<String> ruta = servicioRutas.buscarRuta(origen, destino);
+            double pesoPaquete = elPaquete.getPeso();
 
-            if (ruta.isEmpty()) {
-                System.out.println("Salto solicitud: No hay ruta.");
-                errores++;
-                continue;
+            // Validar ruta
+            if (servicioRutas.buscarRuta(origen, destino).isEmpty()) {
+                System.out.println("Salto solicitud: Sin ruta.");
+                errores++; continue;
             }
 
-            // Buscar Mensajero en el origen
-            Mensajero elMensajero = null;
-            for (Mensajero m : dataStore.getMensajeros()) {
-                if (m.getCentro().equals(origen) && m.getEstado().equals("DISPONIBLE")) {
-                    elMensajero = m;
+            // --- AQUI ESTA LA MAGIA: ASIGNACIÓN OPTIMIZADA ---
+            EstadoMensajeroTemporal candidato = null;
+
+            // Opción 1: Buscar si ya estamos llenando un mensajero para esa ruta
+            for (EstadoMensajeroTemporal temp : usoMensajeros.values()) {
+                if (temp.mensajeroReal.getCentro().equals(origen) &&    // Mismo origen
+                        temp.destinoActual.equals(destino) &&               // Mismo destino (Agrupación)
+                        temp.capacidadRestante >= pesoPaquete) {            // Cabe el paquete
+
+                    candidato = temp;
                     break;
                 }
             }
 
-            if (elMensajero == null) {
-                System.out.println("Salto solicitud: No hay mensajero.");
-                errores++;
-                continue;
+            // Opción 2: Si no hay nadie saliendo, buscar uno nuevo DISPONIBLE
+            if (candidato == null) {
+                if (dataStore.getMensajeros() != null) {
+                    for (Mensajero m : dataStore.getMensajeros()) {
+                        // Importante: Que no lo hayamos usado ya en el mapa temporal (usoMensajeros.containsKey)
+                        if (!usoMensajeros.containsKey(m.getId()) &&
+                                m.getCentro().equals(origen) &&
+                                m.getEstado().equals("DISPONIBLE") &&
+                                m.getCapacidad() >= pesoPaquete) {
+
+                            // Creamos un nuevo estado temporal
+                            candidato = new EstadoMensajeroTemporal(m);
+                            candidato.destinoActual = destino; // Definimos a dónde va este viaje
+                            usoMensajeros.put(m.getId(), candidato);
+                            break;
+                        }
+                    }
+                }
             }
 
-            // Realizar cambios
-            elPaquete.setEstado("EN_TRANSITO");
-            elMensajero.setEstado("EN_TRANSITO");
+            // --- RESULTADO DE LA BÚSQUEDA ---
+            if (candidato != null) {
+                // Asignamos
+                candidato.capacidadRestante -= pesoPaquete;
+                elPaquete.setEstado("EN_TRANSITO");
 
-            completadas.add(sol);
-            procesados++;
+                System.out.println("Asignado P: " + elPaquete.getId() + " ("+pesoPaquete+"kg) a Mensajero: " + candidato.mensajeroReal.getNombre() + " | Espacio restante: " + candidato.capacidadRestante);
+
+                completadas.add(sol);
+                procesados++;
+            } else {
+                System.out.println("Salto solicitud: No hay mensajero con capacidad o ruta disponible.");
+                errores++;
+            }
         }
 
-        // Limpiar las procesadas de la cola
-        cola.removeAll(completadas);
+        // --- FINALIZAR: ACTUALIZAR ESTADOS DE MENSAJEROS ---
+        // Ahora si, a todos los mensajeros que usamos, los ponemos EN_TRANSITO real
+        for (EstadoMensajeroTemporal estado : usoMensajeros.values()) {
+            estado.mensajeroReal.setEstado("EN_TRANSITO");
+            // Opcional: Podrías guardar en el mensajero hacia dónde va, si tuvieras ese campo.
+        }
 
-        return ResponseEntity.ok("Procesamiento finalizado. Atendidas: " + procesados + ". Fallidas/Saltadas: " + errores);
+        cola.removeAll(completadas);
+        return ResponseEntity.ok("Procesamiento inteligente finalizado. Atendidas: " + procesados + ". Fallidas/Saltadas: " + errores);
     }
 }
