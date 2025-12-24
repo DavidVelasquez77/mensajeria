@@ -17,7 +17,7 @@ public class MensajeroController {
     @Autowired
     DataStore datosMemoria;
 
-    // 1. Ver todos los mensajeros
+    //  Ver todos los mensajeros
     @GetMapping
     public List<Mensajero> listarMensajeros() {
         System.out.println("Solicitud recibida: Listar todos los mensajeros.");
@@ -31,7 +31,7 @@ public class MensajeroController {
         return lista;
     }
 
-    // 2. Buscar uno por ID
+    //  Buscar uno por ID
     @GetMapping("/{id}")
     public ResponseEntity<?> buscarMensajero(@PathVariable String id) {
         System.out.println("Buscando mensajero ID: " + id);
@@ -53,7 +53,7 @@ public class MensajeroController {
         return ResponseEntity.status(404).body("No se encontro el mensajero.");
     }
 
-    // 3. Contratar nuevo mensajero
+    //  Contratar nuevo mensajero
     @PostMapping
     public ResponseEntity<String> crearMensajero(@RequestBody Mensajero nuevo) {
         System.out.println("Intentando registrar mensajero: " + nuevo.getNombre());
@@ -73,7 +73,7 @@ public class MensajeroController {
         return ResponseEntity.ok("Mensajero creado exitosamente.");
     }
 
-    // 4. Actualizar Estado
+    // Actualizar Estado
     @PutMapping("/{id}/estado")
     public ResponseEntity<?> cambiarEstado(@PathVariable String id, @RequestBody String nuevoEstado) {
         System.out.println("Cambiando estado de " + id + " a " + nuevoEstado);
@@ -98,7 +98,7 @@ public class MensajeroController {
         return ResponseEntity.ok("Estado actualizado.");
     }
 
-    // 5. Mover de Centro
+    //  Mover de Centro
     @PutMapping("/{id}/centro")
     public ResponseEntity<?> reasignarCentro(@PathVariable String id, @RequestBody String nuevoCentroId) {
         System.out.println("Reasignando mensajero " + id + " al centro " + nuevoCentroId);
@@ -115,7 +115,7 @@ public class MensajeroController {
             return ResponseEntity.status(404).body("Mensajero no encontrado.");
         }
 
-        // Validacion: Si esta ocupado no se mueve
+        // Validacion de si esta ocupado no se mueve
         if (m.getEstado().equals("EN_TRANSITO")) {
             System.out.println("Fallo: El mensajero esta ocupado.");
             return ResponseEntity.badRequest().body("No se puede reasignar: El mensajero esta EN_TRANSITO.");

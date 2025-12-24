@@ -15,14 +15,13 @@ public class RutaService {
     @Autowired
     private DataStore dataStore;
 
-    // --- MÉTODOS CRUD (LOS QUE TE FALTABAN) ---
 
-    // 1. Obtener todas
+    //  Obtener todas
     public List<Ruta> obtenerTodas() {
         return dataStore.getRutas();
     }
 
-    // 2. Buscar por ID
+    //  Buscar por ID
     public Ruta buscarPorId(String id) {
         for (Ruta r : dataStore.getRutas()) {
             if (r.getId().equals(id)) {
@@ -32,7 +31,7 @@ public class RutaService {
         return null;
     }
 
-    // 3. Crear Ruta
+    // Crear Ruta
     public void crearRuta(Ruta nueva) {
         // Validar duplicados de ID o de conexión (Origen-Destino)
         for (Ruta r : dataStore.getRutas()) {
@@ -46,7 +45,7 @@ public class RutaService {
         dataStore.getRutas().add(nueva);
     }
 
-    // 4. Actualizar Ruta
+    // Actualizar Ruta
     public boolean actualizarRuta(String id, Ruta nuevosDatos) {
         Ruta ruta = buscarPorId(id);
         if (ruta != null) {
@@ -57,7 +56,7 @@ public class RutaService {
         return false;
     }
 
-    // 5. Eliminar Ruta
+    //  Eliminar Ruta
     public boolean eliminarRuta(String id) {
         Ruta ruta = buscarPorId(id);
         if (ruta != null) {
@@ -67,8 +66,7 @@ public class RutaService {
         return false;
     }
 
-    // --- LÓGICA DE GRAFOS (DIJKSTRA) ---
-    // (Esta parte ya la tenías, la dejo aquí para que no se pierda)
+    // dijkstra
 
     public List<String> buscarRuta(String inicio, String fin) {
         System.out.println("Calculando ruta de " + inicio + " a " + fin);
@@ -100,7 +98,6 @@ public class RutaService {
         costos.put(inicio, 0);
         pendientes.add(inicio);
 
-        // Bucle Principal
         while (!pendientes.isEmpty()) {
 
             // Buscar nodo con menor costo

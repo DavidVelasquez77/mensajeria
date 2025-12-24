@@ -100,7 +100,7 @@ public class PaqueteController {
         return ResponseEntity.ok("Paquete creado exitosamente.");
     }
 
-    // 4. Actualizar Paquete
+    // Actualizar Paquete
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizarPaquete(@PathVariable String id, @RequestBody Paquete datosNuevos) {
         System.out.println("Actualizando paquete: " + id);

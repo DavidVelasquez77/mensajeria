@@ -22,7 +22,6 @@ public class CargaService {
 
             XmlMapper xmlMapper = new XmlMapper();
 
-            // convertimos el archivo a nuestros objetos Java
             ConfiguracionLogitrack datos = xmlMapper.readValue(archivo.getInputStream(), ConfiguracionLogitrack.class);
 
             // verificamos que traiga algo
@@ -31,7 +30,6 @@ public class CargaService {
                 return "Error: El XML no tiene el formato correcto o esta vacio.";
             }
 
-            // limpiamos la memoria antes de cargar lo nuevo
             dataStore.limpiarTodo();
 
             // obtenemos la config interna
@@ -64,10 +62,8 @@ public class CargaService {
                 dataStore.getSolicitudes().addAll(config.getListaSolicitudes());
             }
 
-            // debug final en consola
             dataStore.imprimirEstadisticas();
 
-            // --- AQUI CREAMOS EL RESUMEN ---
             String reporte = "Carga Exitosa. Objetos creados en memoria: ";
             reporte += "\n - Centros: " + dataStore.getCentros().size();
             reporte += "\n - Rutas: " + dataStore.getRutas().size();

@@ -19,7 +19,7 @@ public class CentroController {
     @Autowired
     DataStore baseDeDatosMemoria;
 
-    // 1. Obtener listado
+    // Obtener listado
     @GetMapping
     public ResponseEntity<List<Centro>> getAllCentros() {
         System.out.println("Entrando a GET /api/centros...");
@@ -36,7 +36,7 @@ public class CentroController {
         return ResponseEntity.ok(listaRespuesta);
     }
 
-    // 2. Buscar centro por ID
+    //  Buscar centro por ID
     @GetMapping("/{idCentro}")
     public ResponseEntity<?> getCentroPorId(@PathVariable String idCentro) {
         System.out.println("Buscando el ID: " + idCentro);
@@ -44,13 +44,11 @@ public class CentroController {
         List<Centro> listaCompleta = baseDeDatosMemoria.getCentros();
         Centro objetoEncontrado = null;
 
-        // Bucle clasico con indice i
+
         for (int i = 0; i < listaCompleta.size(); i++) {
             Centro temp = listaCompleta.get(i);
-            // Comparamos strings
             if (temp.getId().equals(idCentro)) {
                 objetoEncontrado = temp;
-                // Romper el ciclo porque ya lo hallamos
                 break;
             }
         }
@@ -63,7 +61,7 @@ public class CentroController {
         }
     }
 
-    // 3. Ver el inventario de paquetes de un centro
+    //  Ver el inventario de paquetes de un centro
     @GetMapping("/{id}/paquetes")
     public List<Paquete> getPaquetesDelCentro(@PathVariable String id) {
         System.out.println("Filtrando paquetes para centro: " + id);
@@ -92,7 +90,7 @@ public class CentroController {
         return misPaquetes;
     }
 
-    // 4. Ver mensajeros asignados
+    // Ver mensajeros asignados
     @GetMapping("/{id}/mensajeros")
     public List<Mensajero> getMensajerosDelCentro(@PathVariable String id) {
         System.out.println("--- Request: Mensajeros en " + id + " ---");

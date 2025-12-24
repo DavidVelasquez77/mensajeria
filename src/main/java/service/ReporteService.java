@@ -20,10 +20,9 @@ public class ReporteService {
 
     public String generarXmlSalida() {
         try {
-            // 1. Instanciamos la raiz del XML
             ResultadoLogitrack resultado = new ResultadoLogitrack();
 
-            // 2. CALCULO DE ESTADISTICAS (Dinámico)
+            // estadisticos
             Estadisticas stats = new Estadisticas();
 
             // Paquetes procesados = Aquellos que ya no estan PENDIENTE
@@ -49,7 +48,7 @@ public class ReporteService {
 
             resultado.setEstadisticas(stats);
 
-            // 3. PROCESAR CENTROS (Calculando inventario actual)
+            // procesar centros
             List<CentroReporte> listaCentros = new ArrayList<>();
             if (dataStore.getCentros() != null) {
                 for (Centro c : dataStore.getCentros()) {
@@ -73,7 +72,7 @@ public class ReporteService {
             }
             resultado.setCentros(listaCentros);
 
-            // 4. PROCESAR MENSAJEROS
+            // procesar mensajeros
             List<MensajeroReporte> listaMensajeros = new ArrayList<>();
             if (dataStore.getMensajeros() != null) {
                 for (Mensajero m : dataStore.getMensajeros()) {
@@ -85,7 +84,7 @@ public class ReporteService {
             }
             resultado.setMensajeros(listaMensajeros);
 
-            // 5. PROCESAR PAQUETES
+            //procesar paquetes
             List<PaqueteReporte> listaPaquetes = new ArrayList<>();
             if (dataStore.getPaquetes() != null) {
                 for (Paquete p : dataStore.getPaquetes()) {
@@ -98,17 +97,15 @@ public class ReporteService {
             }
             resultado.setPaquetes(listaPaquetes);
 
-            // 6. PROCESAR SOLICITUDES (Logica Dinámica de Estado)
+            // procesar solicitudes
             List<SolicitudReporte> listaSolicitudes = new ArrayList<>();
             if (dataStore.getSolicitudes() != null) {
                 for (Solicitud s : dataStore.getSolicitudes()) {
                     SolicitudReporte sr = new SolicitudReporte();
                     sr.setId(s.getId());
 
-                    // BUSCAMOS EL PAQUETE PARA VER SI LA SOLICITUD YA FUE ATENDIDA
                     Paquete p = buscarPaquete(s.getPaquete());
 
-                    // Si el paquete ya se mueve (no es PENDIENTE), la solicitud se considera ATENDIDA
                     if (p != null && !p.getEstado().equals("PENDIENTE")) {
                         sr.setEstado("ATENDIDA");
                     } else {
@@ -121,7 +118,6 @@ public class ReporteService {
             }
             resultado.setSolicitudes(listaSolicitudes);
 
-            // GENERACION FINAL DEL XML
             XmlMapper xmlMapper = new XmlMapper();
             xmlMapper.enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
             return xmlMapper.writeValueAsString(resultado);
@@ -132,7 +128,7 @@ public class ReporteService {
         }
     }
 
-    // Helper para buscar paquete seguro
+
     private Paquete buscarPaquete(String id) {
         if (dataStore.getPaquetes() == null) return null;
         return dataStore.getPaquetes().stream()
@@ -140,10 +136,6 @@ public class ReporteService {
                 .findFirst()
                 .orElse(null);
     }
-
-    // ==========================================
-    // CLASES INTERNAS (DTOs) PARA LA ESTRUCTURA XML
-    // ==========================================
 
     @JacksonXmlRootElement(localName = "resultadoLogitrack")
     static class ResultadoLogitrack {

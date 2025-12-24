@@ -14,9 +14,9 @@ import java.util.List;
 public class RutaController {
 
     @Autowired
-    RutaService servicio; // Le quite el private para probar
+    RutaService servicio;
 
-    // METODO 1: Traer todas las rutas
+    //  Traer todas las rutas
     @GetMapping
     public List<Ruta> getRutas() {
         System.out.println("--- Peticion recibida: Listar Rutas ---");
@@ -30,7 +30,7 @@ public class RutaController {
         return listadoFinal;
     }
 
-    // METODO 2: Buscar una sola ruta por ID
+    //  Buscar una sola ruta por ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getRutaIndividual(@PathVariable String id) {
         System.out.println("Buscando ruta especifica: " + id);
@@ -47,7 +47,7 @@ public class RutaController {
         return ResponseEntity.ok(r);
     }
 
-    // METODO 3: Guardar nueva ruta
+    // Guardar nueva ruta
     @PostMapping
     public ResponseEntity<String> guardarRuta(@RequestBody Ruta body) {
         System.out.println("Intentando guardar ruta: " + body.getId());
@@ -66,7 +66,7 @@ public class RutaController {
         }
     }
 
-    // METODO 4: Actualizar
+    // Actualizar
     @PutMapping("/{id}")
     public ResponseEntity<String> updateRuta(@PathVariable String id, @RequestBody Ruta datos) {
 
@@ -80,7 +80,7 @@ public class RutaController {
         }
     }
 
-    // METODO 5: Borrar
+    //  Borrar
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteRuta(@PathVariable String id) {
         System.out.println("Solicitando eliminar: " + id);

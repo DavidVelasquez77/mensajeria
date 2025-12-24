@@ -18,7 +18,7 @@ public class EnvioController {
     @Autowired
     DataStore datos;
 
-    //  1. ASIGNACIÓN DIRECTA
+    // ASIGNACIÓN DIRECTA
     @PutMapping("/asignar")
     public ResponseEntity<String> asignarManual(@RequestBody Map<String, String> body) {
         String idPaquete = body.get("paqueteId");
@@ -55,14 +55,14 @@ public class EnvioController {
             return ResponseEntity.badRequest().body("Error: El mensajero no esta DISPONIBLE.");
         }
 
-        // Ejecutar
+
         elPaquete.setEstado("EN_TRANSITO");
         elMensajero.setEstado("EN_TRANSITO");
 
         return ResponseEntity.ok("Asignacion completada.");
     }
 
-    // 2. GESTIÓN DEL ESTADO DEL ENVÍO (CORREGIDO)
+    //  GESTIÓN DEL ESTADO DEL ENVÍO
     @PutMapping("/{id}/estado")
     public ResponseEntity<String> actualizarEstado(@PathVariable String id, @RequestBody String nuevoEstado) {
 
@@ -93,12 +93,12 @@ public class EnvioController {
             return ResponseEntity.badRequest().body("Error: No se puede revertir.");
         }
 
-        // --- APLICAR CAMBIO ---
+        //APLICAR CAMBIO
         paqueteEncontrado.setEstado(estadoLimpio);
         String timeStamp = LocalDateTime.now().toString();
         System.out.println("Nuevo estado: " + estadoLimpio + " | Hora: " + timeStamp);
 
-        // --- REGLA: FINALIZAR VIAJE Y LIBERAR MENSAJERO ---
+        // REGLA: FINALIZAR VIAJE Y LIBERAR MENSAJERO
         if (estadoLimpio.equals("ENTREGADO")) {
             System.out.println("Paquete entregado. Finalizando logistica...");
 
@@ -106,10 +106,10 @@ public class EnvioController {
             String centroOrigenViaje = paqueteEncontrado.getCentroActual();
             String centroDestinoViaje = paqueteEncontrado.getDestino();
 
-            // 1. Mover el paquete al destino final
+            //  Mover el paquete al destino final
             paqueteEncontrado.setCentroActual(centroDestinoViaje);
 
-            // 2. Buscar al mensajero que venia del origen
+            //  Buscar al mensajero que venia del origen
             boolean mensajeroLiberado = false;
 
             for (Mensajero m : datos.getMensajeros()) {

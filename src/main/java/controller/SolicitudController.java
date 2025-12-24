@@ -35,7 +35,7 @@ public class SolicitudController {
         }
     }
 
-    // 1. LISTAR LA COLA (GET)
+    // LISTAR LA COLA (
     @GetMapping
     public List<Solicitud> verCola() {
         List<Solicitud> cola = dataStore.getSolicitudes();
@@ -46,7 +46,7 @@ public class SolicitudController {
         return cola;
     }
 
-    // 2. CREAR SOLICITUD
+    // CREAR SOLICITUD
     @PostMapping
     public ResponseEntity<String> crearSolicitud(@RequestBody Solicitud nueva) {
         boolean paqueteExiste = false;
@@ -68,7 +68,7 @@ public class SolicitudController {
         return ResponseEntity.ok("Solicitud agregada a la cola.");
     }
 
-    // 3. ELIMINAR SOLICITUD
+    // ELIMINAR SOLICITUD
     @DeleteMapping("/{id}")
     public ResponseEntity<String> borrarSolicitud(@PathVariable String id) {
         Solicitud aBorrar = null;
@@ -85,33 +85,33 @@ public class SolicitudController {
         return ResponseEntity.status(404).body("No encontrada.");
     }
 
-    // 4. PROCESAR LA DE MAYOR PRIORIDAD
+    //  PROCESAR LA DE MAYOR PRIORIDAD
     @PostMapping("/procesar")
     public ResponseEntity<String> procesarTop1() {
         return procesarLogica(1);
     }
 
-    // 5. PROCESAR LAS N MAS PRIORITARIAS
+    // PROCESAR LAS N MAS PRIORITARIAS
     @PostMapping("/procesar/{n}")
     public ResponseEntity<String> procesarTopN(@PathVariable int n) {
         return procesarLogica(n);
     }
 
-    // --- LOGICA DE PROCESAMIENTO MEJORADA (CARGA MÚLTIPLE) ---
+    // carga multiple
     private ResponseEntity<String> procesarLogica(int cantidadAProcesar) {
         List<Solicitud> cola = dataStore.getSolicitudes();
         if (cola == null || cola.isEmpty()) {
             return ResponseEntity.ok("La cola esta vacia.");
         }
 
-        // 1. Ordenar por prioridad (Lo mas urgente primero)
+        //  Ordenar por prioridad (Lo mas urgente primero)
         cola.sort((s1, s2) -> Integer.compare(s2.getPrioridad(), s1.getPrioridad()));
 
         int procesados = 0;
         int errores = 0;
         List<Solicitud> completadas = new ArrayList<>();
 
-        // MAPA TEMPORAL: ID Mensajero -> Estado (cuanto espacio le queda en este viaje)
+        // cuanto espacio le queda en este viaje
         Map<String, EstadoMensajeroTemporal> usoMensajeros = new HashMap<>();
 
         // Iteramos las solicitudes
@@ -145,13 +145,13 @@ public class SolicitudController {
                 errores++; continue;
             }
 
-            // --- AQUI ESTA LA MAGIA: ASIGNACIÓN OPTIMIZADA ---
+
             EstadoMensajeroTemporal candidato = null;
 
-            // Opción 1: Buscar si ya estamos llenando un mensajero para esa ruta
+            // Buscar si ya estamos llenando un mensajero para esa ruta
             for (EstadoMensajeroTemporal temp : usoMensajeros.values()) {
                 if (temp.mensajeroReal.getCentro().equals(origen) &&    // Mismo origen
-                        temp.destinoActual.equals(destino) &&               // Mismo destino (Agrupación)
+                        temp.destinoActual.equals(destino) &&               // Mismo destino
                         temp.capacidadRestante >= pesoPaquete) {            // Cabe el paquete
 
                     candidato = temp;
@@ -159,11 +159,11 @@ public class SolicitudController {
                 }
             }
 
-            // Opción 2: Si no hay nadie saliendo, buscar uno nuevo DISPONIBLE
+            // Si no hay nadie saliendo, buscar uno nuevo DISPONIBLE
             if (candidato == null) {
                 if (dataStore.getMensajeros() != null) {
                     for (Mensajero m : dataStore.getMensajeros()) {
-                        // Importante: Que no lo hayamos usado ya en el mapa temporal (usoMensajeros.containsKey)
+
                         if (!usoMensajeros.containsKey(m.getId()) &&
                                 m.getCentro().equals(origen) &&
                                 m.getEstado().equals("DISPONIBLE") &&
@@ -179,7 +179,7 @@ public class SolicitudController {
                 }
             }
 
-            // --- RESULTADO DE LA BÚSQUEDA ---
+            // resuelado de la busqueda
             if (candidato != null) {
                 // Asignamos
                 candidato.capacidadRestante -= pesoPaquete;
@@ -195,11 +195,9 @@ public class SolicitudController {
             }
         }
 
-        // --- FINALIZAR: ACTUALIZAR ESTADOS DE MENSAJEROS ---
-        // Ahora si, a todos los mensajeros que usamos, los ponemos EN_TRANSITO real
         for (EstadoMensajeroTemporal estado : usoMensajeros.values()) {
             estado.mensajeroReal.setEstado("EN_TRANSITO");
-            // Opcional: Podrías guardar en el mensajero hacia dónde va, si tuvieras ese campo.
+
         }
 
         cola.removeAll(completadas);
